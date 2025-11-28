@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>부부 노후자금 시뮬레이션</title>
+    <!-- Tailwind CSS (디자인용) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js (그래프용) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* 슬라이더 커스텀 스타일 */
+        input[type=range] {
+            -webkit-appearance: none; 
+            width: 100%; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #4F46E5;
+            cursor: pointer;
+            margin-top: -6px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #E5E7EB;
+            border-radius: 2px;
+        }
+        input[type=number]:focus {
+            outline: 2px solid #4F46E5;
+            outline-offset: 1px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- 헤더 -->
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-indigo-700 mb-2">💰 부부 노후자금 시뮬레이션</h1>
+            <p class="text-slate-500">현재 자산과 저축 계획으로 행복한 노후가 가능할까요? 지금 확인해보세요.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- 왼쪽: 입력 패널 -->
+            <div class="lg:col-span-4 space-y-6 bg-white p-6 rounded-2xl shadow-lg border border-slate-100">
+                <h2 class="text-xl font-semibold border-b pb-2 mb-4">📝 정보 입력</h2>
+
+                <!-- 입력 항목 컴포넌트들 -->
+                <div class="input-group">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">현재 나이 (부부 평균)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="range" id="currentAgeRange" min="20" max="80" value="40" class="flex-1">
+                        <input type="number" id="currentAge" min="20" max="80" value="40" class="w-20 p-2 border rounded text-right bg-slate-50">
+                        <span class="text-sm">세</span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">은퇴 예정 나이</label>
+                    <div class="flex items-center gap-2">
+                        <input type="range" id="retireAgeRange" min="40" max="90" value="65" class="flex-1">
+                        <input type="number" id="retireAge" min="40" max="90" value="65" class="w-20 p-2 border rounded text-right bg-slate-50">
+                        <span class="text-sm">세</span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">예상 수명</label>
+                    <div class="flex items-center gap-2">
+                        <input type="range" id="lifeAgeRange" min="70" max="120" value="95" class="flex-1">
+                        <input type="number" id="lifeAge" min="70" max="120" value="95" class="w-20 p-2 border rounded text-right bg-slate-50">
+                        <span class="text-sm">세</span>
+                    </div>
+                </div>
+
+                <hr class="border-slate-100">
+
+                <div class="input-group">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">현재 모은 자산 (단위: 만원)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="range" id="currentAssetRange" min="0" max="500000" step="1000" value="10000" class="flex-1">
+                        <input type="number" id="currentAsset" min="0" value="10000" class="w-24 p-2 border rounded text-right bg-slate-50">
+                    </div>
+                    <p class="text-xs text-slate-400 text-right mt-1" id="currentAssetText">1억원</p>
+                </div>
+
+                <div class="input-group">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">매월 저축액 (은퇴 전까지)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="range" id="monthlySavingRange" min="0" max="2000" step="10" value="200" class="flex-1">
+                        <input type="number" id="monthlySaving" min="0" value="200" class="w-24 p-2 border rounded text-right bg-slate-50">
+                        <span class="text-sm w-8">만원</span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">부부 예상 노령연금 (월 수령액)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="range" id="pensionRange" min="0" max="500" step="10" value="100" class="flex-1">
+                        <input type="number" id="pension" min="0" value="100" class="w-24 p-2 border rounded text-right bg-slate-50">
+                        <span class="text-sm w-8">만원</span>
+                    </div>
+                    <p class="text-xs text-indigo-500 mt-1">* 은퇴 시점부터 수령하며, 물가상승만큼 인상된다고 가정</p>
+                </div>
+
+                <div class="input-group">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">은퇴 후 희망 월 생활비 (현재가치)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="range" id="monthlySpendingRange" min="100" max="1000" step="10" value="300" class="flex-1">
+                        <input type="number" id="monthlySpending" min="0" value="300" class="w-24 p-2 border rounded text-right bg-slate-50">
+                        <span class="text-sm w-8">만원</span>
+                    </div>
+                    <p class="text-xs text-indigo-500 mt-1">* 물가상승률 반영하여 미래 금액으로 자동 계산됨</p>
+                </div>
+
+                <hr class="border-slate-100">
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="input-group">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">투자 수익률 (%)</label>
+                        <input type="number" id="returnRate" step="0.1" value="5.0" class="w-full p-2 border rounded text-center bg-slate-50">
+                    </div>
+                    <div class="input-group">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">물가 상승률 (%)</label>
+                        <input type="number" id="inflationRate" step="0.1" value="2.5" class="w-full p-2 border rounded text-center bg-slate-50">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 오른쪽: 결과 패널 -->
+            <div class="lg:col-span-8 space-y-6">
+                
+                <!-- 요약 카드 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-indigo-600 text-white p-6 rounded-2xl shadow-lg">
+                        <h3 class="text-indigo-200 text-sm font-medium mb-1">은퇴 시점 예상 자산</h3>
+                        <p class="text-3xl font-bold" id="assetAtRetirement">0원</p>
+                        <p class="text-indigo-200 text-sm mt-2">은퇴 나이: <span id="displayRetireAge">65</span>세</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100" id="statusCard">
+                        <h3 class="text-slate-500 text-sm font-medium mb-1">자산 고갈 예상 시기</h3>
+                        <p class="text-3xl font-bold text-slate-800" id="depletionAge">계산 중...</p>
+                        <p class="text-sm mt-2" id="statusMessage">결과를 확인하세요.</p>
+                    </div>
+                </div>
+
+                <!-- 차트 영역 -->
+                <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 h-[400px] relative">
+                    <canvas id="wealthChart"></canvas>
+                </div>
+
+                <!-- 상세 분석 텍스트 -->
+                <div class="bg-orange-50 p-6 rounded-2xl border border-orange-100 text-sm text-slate-700">
+                    <h4 class="font-bold text-orange-800 mb-2">💡 분석 리포트</h4>
+                    <p id="analysisText" class="leading-relaxed">
+                        데이터를 입력하면 분석 결과가 여기에 표시됩니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. DOM 요소 가져오기
+        const inputs = {
+            currentAge: document.getElementById('currentAge'),
+            retireAge: document.getElementById('retireAge'),
+            lifeAge: document.getElementById('lifeAge'),
+            currentAsset: document.getElementById('currentAsset'),
+            monthlySaving: document.getElementById('monthlySaving'),
+            pension: document.getElementById('pension'),
+            monthlySpending: document.getElementById('monthlySpending'),
+            returnRate: document.getElementById('returnRate'),
+            inflationRate: document.getElementById('inflationRate')
+        };
+
+        // 슬라이더 연결을 위한 매핑
+        const ranges = {
+            currentAge: document.getElementById('currentAgeRange'),
+            retireAge: document.getElementById('retireAgeRange'),
+            lifeAge: document.getElementById('lifeAgeRange'),
+            currentAsset: document.getElementById('currentAssetRange'),
+            monthlySaving: document.getElementById('monthlySavingRange'),
+            pension: document.getElementById('pensionRange'),
+            monthlySpending: document.getElementById('monthlySpendingRange')
+        };
+
+        // 결과 표시 요소 (이 부분이 누락되었었습니다)
+        const outputs = {
+            assetAtRetirement: document.getElementById('assetAtRetirement'),
+            displayRetireAge: document.getElementById('displayRetireAge'),
+            depletionAge: document.getElementById('depletionAge'),
+            statusMessage: document.getElementById('statusMessage'),
+            statusCard: document.getElementById('statusCard'),
+            currentAssetText: document.getElementById('currentAssetText'),
+            analysisText: document.getElementById('analysisText')
+        };
+
+        let myChart = null;
+
+        // 2. 숫자 포맷팅 유틸리티 (한국식 '억', '만' 단위)
+        function formatKoreanNumber(number) {
+            if (number < 0) return "-" + formatKoreanNumber(-number);
+            const uk = Math.floor(number / 10000);
+            const man = Math.round(number % 10000);
+            
+            let result = "";
+            if (uk > 0) result += `${uk.toLocaleString()}억 `;
+            if (man > 0) result += `${man.toLocaleString()}만원`;
+            if (result === "") result = "0원";
+            return result;
+        }
+
+        // 3. 계산 및 차트 업데이트 로직 (핵심)
+        function calculateAndDraw() {
+            // 값 가져오기
+            const currentAge = parseInt(inputs.currentAge.value);
+            const retireAge = parseInt(inputs.retireAge.value);
+            const lifeAge = parseInt(inputs.lifeAge.value);
+            const startAsset = parseInt(inputs.currentAsset.value); // 만원 단위
+            const monthlySaving = parseInt(inputs.monthlySaving.value); // 만원 단위
+            const monthlyPension = parseInt(inputs.pension.value); // 추가: 월 연금액
+            const baseMonthlySpending = parseInt(inputs.monthlySpending.value); // 현재가치 만원
+            const rRate = parseFloat(inputs.returnRate.value) / 100; // 연 수익률
+            const iRate = parseFloat(inputs.inflationRate.value) / 100; // 연 물가상승률
+
+            // 입력값 검증 (간단)
+            if (retireAge <= currentAge) {
+                // 은퇴나이가 현재나이보다 작으면 차트 갱신 중단하지 않고 로직 처리하거나 경고
+            }
+
+            // 시뮬레이션 데이터 생성
+            let labels = [];
+            let data = [];
+            let currentMoney = startAsset;
+            let retirementMoney = 0;
+            let depletionYear = null;
+            
+            // 현재 필요 생활비가 은퇴 시점엔 얼마가 될까? (복리 적용)
+            // 매년 물가상승률 반영
+            
+            let age = currentAge;
+            // 월 단위 시뮬레이션
+            const totalMonths = (lifeAge - currentAge) * 12;
+            
+            // 데이터 포인트 줄이기 위해 1년 단위로 배열에 저장
+            for (let i = 0; i <= lifeAge - currentAge; i++) {
+                labels.push((currentAge + i) + "세");
+                data.push(Math.round(currentMoney));
+                
+                // 은퇴 시점 자산 기록
+                if (currentAge + i === retireAge) {
+                    retirementMoney = currentMoney;
+                }
+
+                // 고갈 시점 체크 (최초 1회만)
+                if (currentMoney < 0 && depletionYear === null) {
+                    depletionYear = currentAge + i;
+                }
+
+                // 1년치 시뮬레이션 (월별 계산의 합)
+                for (let m = 0; m < 12; m++) {
+                    const thisAge = currentAge + i;
+                    
+                    // 1. 투자 수익 (월 복리 가정)
+                    currentMoney = currentMoney * (1 + rRate / 12);
+
+                    if (thisAge < retireAge) {
+                        // 자산 축적기
+                        currentMoney += monthlySaving;
+                    } else {
+                        // 자산 인출기
+                        // 물가상승률 반영된 생활비 계산
+                        // (현재로부터 몇 년 지났는지에 따라 인플레이션 적용)
+                        const yearsPassed = (thisAge - currentAge);
+                        
+                        // 지출 (물가상승 반영)
+                        const inflatedSpending = baseMonthlySpending * Math.pow(1 + iRate, yearsPassed);
+                        
+                        // 수입: 연금 (물가상승 반영 - 국민연금은 물가연동이므로 실질가치 보존을 위해 같이 올림)
+                        const inflatedPension = monthlyPension * Math.pow(1 + iRate, yearsPassed);
+
+                        // 순지출 = 생활비 - 연금
+                        // 연금이 생활비보다 많으면 자산이 오히려 늘어남
+                        currentMoney -= (inflatedSpending - inflatedPension);
+                    }
+                }
+            }
+
+            // 4. 결과 UI 업데이트
+            if (outputs.assetAtRetirement) outputs.assetAtRetirement.innerText = formatKoreanNumber(retirementMoney);
+            if (outputs.displayRetireAge) outputs.displayRetireAge.innerText = retireAge;
+            if (outputs.currentAssetText) outputs.currentAssetText.innerText = formatKoreanNumber(startAsset);
+
+            if (depletionYear) {
+                outputs.depletionAge.innerText = `${depletionYear}세 경`;
+                outputs.statusMessage.innerText = "자산이 고갈될 것으로 예상됩니다.";
+                outputs.statusMessage.className = "text-sm mt-2 text-red-600 font-bold";
+                outputs.statusCard.className = "bg-red-50 p-6 rounded-2xl shadow-lg border border-red-100";
+            } else {
+                outputs.depletionAge.innerText = "안전함";
+                outputs.statusMessage.innerText = `${lifeAge}세까지 자산이 유지됩니다.`;
+                outputs.statusMessage.className = "text-sm mt-2 text-green-600 font-bold";
+                outputs.statusCard.className = "bg-green-50 p-6 rounded-2xl shadow-lg border border-green-100";
+            }
+
+            // 분석 텍스트 생성
+            const monthlySpendingAtRetirement = baseMonthlySpending * Math.pow(1 + iRate, (retireAge - currentAge));
+            const pensionAtRetirement = monthlyPension * Math.pow(1 + iRate, (retireAge - currentAge)); // 은퇴 시점 연금액
+            
+            outputs.analysisText.innerHTML = `
+                현재 <strong>${currentAge}세</strong>인 부부가 <strong>${retireAge}세</strong>에 은퇴할 경우, 
+                물가상승률(${inputs.inflationRate.value}%)을 감안했을 때 은퇴 첫 해의 월 생활비는 
+                <strong>약 ${Math.round(monthlySpendingAtRetirement).toLocaleString()}만원</strong>이 필요합니다.<br><br>
+                
+                이 중 <strong>약 ${Math.round(pensionAtRetirement).toLocaleString()}만원</strong>은 연금으로 충당되므로, 
+                실제 자산에서 꺼내야 할 돈은 월 <strong>약 ${Math.round(monthlySpendingAtRetirement - pensionAtRetirement).toLocaleString()}만원</strong> 수준입니다.
+                
+                ${depletionYear ? 
+                    `<br><br>현재 계획대로라면 <strong>${depletionYear}세</strong>에 자산이 바닥납니다. 저축액을 늘리거나 수익률을 높여야 합니다.` : 
+                    `<br><br>매우 훌륭한 계획입니다! 예상 수명인 <strong>${lifeAge}세</strong>까지 자산이 충분히 유지됩니다.`}
+            `;
+
+
+            // 5. 차트 그리기
+            if (myChart) myChart.destroy();
+
+            const ctx = document.getElementById('wealthChart').getContext('2d');
+            
+            // 그라데이션 효과
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(79, 70, 229, 0.2)');
+            gradient.addColorStop(1, 'rgba(79, 70, 229, 0)');
+
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '총 자산 예측 (만원)',
+                        data: data,
+                        borderColor: '#4F46E5', // indigo-600
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        pointRadius: 0, // 포인트 숨김 (깔끔하게)
+                        pointHoverRadius: 6,
+                        fill: true,
+                        tension: 0.4 // 부드러운 곡선
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `자산: ${formatKoreanNumber(context.raw)}`;
+                                }
+                            }
+                        },
+                        annotation: { // 0원 기준선 (플러그인 없어도 grid로 대체)
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: { color: '#f3f4f6' },
+                            ticks: {
+                                callback: function(value) {
+                                    return Math.floor(value / 10000) + '억';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 6. 이벤트 리스너 등록 (입력값 변경 시 자동 계산)
+        // 슬라이더 <-> 숫자입력 동기화 및 계산 실행
+        Object.keys(inputs).forEach(key => {
+            const input = inputs[key];
+            const range = ranges[key];
+
+            // 숫자 입력 시
+            if(input) {
+                input.addEventListener('input', () => {
+                    if(range) range.value = input.value;
+                    calculateAndDraw();
+                });
+            }
+
+            // 슬라이더 조작 시
+            if (range) {
+                range.addEventListener('input', () => {
+                    input.value = range.value;
+                    calculateAndDraw();
+                });
+            }
+        });
+
+        // 초기 실행
+        calculateAndDraw();
+
+    </script>
+</body>
+</html>
